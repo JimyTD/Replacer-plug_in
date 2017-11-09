@@ -85,7 +85,7 @@ public class ConstClassGenerator : MonoBehaviour {
         }
         sr.Close();
         string objectName = "constString."+fileName + i.ToString();//引用的字符串变量
-        string changedStr=str.Replace(datas[i].strConst,objectName);
+        string changedStr=str.Replace(@""""+datas[i].strConst+ @"""", objectName);
         if (changedStr.Equals(temp))//未修改，表示未找到替换部分
         {
             Debug.Log("Fail to find string!" + datas[i].strConst);
