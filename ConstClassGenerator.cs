@@ -32,12 +32,12 @@ public class ConstClassGenerator : MonoBehaviour {
             return false;
         }
         datas = CsvImporter.Parser<strConstData>(File.ReadAllBytes("Assets/wordsTest.txt"));
-        if (!File.Exists("Assets/StreamingAssets/constStrings.cs"))
+        if (File.Exists("Assets/constStrings.cs"))
         {
-            File.Delete("Assets/StreamingAssets/constStrings.cs");
+            File.Delete("Assets/constStrings.cs");
         }//删除老的配置
-        referedFile = File.Open("Assets/StreamingAssets/constStrings.cs", FileMode.OpenOrCreate);
-        if (!File.Exists("Assets/StreamingAssets/constStrings.cs"))
+        referedFile = File.Open("Assets/constStrings.cs", FileMode.OpenOrCreate);
+        if (!File.Exists("Assets/constStrings.cs"))
         {
             Debug.Log("Create failed!");
             return false;
@@ -84,14 +84,14 @@ public class ConstClassGenerator : MonoBehaviour {
             Debug.Log("Read fault..");
         }
         sr.Close();
-        string objectName = "constString."+fileName + i.ToString();//引用的字符串变量
-        string changedStr=str.Replace(@""""+datas[i].strConst+ @"""", objectName);
+        string objectName = "constStrings."+fileName + i.ToString();//引用的字符串变量
+        string changedStr=str.Replace(@"""" + datas[i].strConst + @"""", objectName);
         if (changedStr.Equals(temp))//未修改，表示未找到替换部分
         {
             Debug.Log("Fail to find string!" + datas[i].strConst);
             return;
         }
-        string objectString = "    public string " + fileName + i.ToString() + @" =""" + datas[i].strConst + @""";"+"\n";
+        string objectString = "    public static string " + fileName + i.ToString() + @" =""" + datas[i].strConst + @""";"+"\n";
         byte[] barr = System.Text.Encoding.Default.GetBytes(objectString);
         referedFile.Write(barr, 0, barr.Length);//写入参照程序
         StreamWriter sw = new StreamWriter(path,false, System.Text.Encoding.UTF8);//false表示全部重写
@@ -110,6 +110,7 @@ public class ConstClassGenerator : MonoBehaviour {
         string temp = "};";
         byte[] barr = System.Text.Encoding.Default.GetBytes(temp);
         referedFile.Write(barr, 0, barr.Length);
+        referedFile.Flush();
         referedFile.Close();
         Debug.Log("fileCloseSuccess");
     }
