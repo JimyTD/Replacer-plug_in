@@ -44,7 +44,7 @@ public class ConstClassGenerator : MonoBehaviour {
         }
         //写入类信息
         string temp="class constStrings{\n";
-        byte[] barr = System.Text.Encoding.Default.GetBytes(temp);
+        byte[] barr = System.Text.Encoding.UTF8.GetBytes(temp);
         referedFile.Write(barr, 0, barr.Length);
         Debug.Log("fileOpenSuccess");
         return true;
@@ -91,8 +91,8 @@ public class ConstClassGenerator : MonoBehaviour {
             Debug.Log("Fail to find string!" + datas[i].strConst);
             return;
         }
-        string objectString = "    public static string " + fileName + i.ToString() + @" =""" + datas[i].strConst + @""";"+"\n";
-        byte[] barr = System.Text.Encoding.Default.GetBytes(objectString);
+        string objectString = "    public const string " + fileName + i.ToString() + @" =""" + datas[i].strConst + @""";"+"\n";
+        byte[] barr = System.Text.Encoding.UTF8.GetBytes(objectString);
         referedFile.Write(barr, 0, barr.Length);//写入参照程序
         StreamWriter sw = new StreamWriter(path,false, System.Text.Encoding.UTF8);//false表示全部重写
         sw.Write(changedStr);
@@ -108,7 +108,7 @@ public class ConstClassGenerator : MonoBehaviour {
     static void distruct()
     {
         string temp = "};";
-        byte[] barr = System.Text.Encoding.Default.GetBytes(temp);
+        byte[] barr = System.Text.Encoding.UTF8.GetBytes(temp);
         referedFile.Write(barr, 0, barr.Length);
         referedFile.Flush();
         referedFile.Close();
