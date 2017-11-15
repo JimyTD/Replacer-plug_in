@@ -2,6 +2,7 @@
 using System.Collections;
 using UnityEditor;
 using System.IO;
+using System.Text.RegularExpressions;
 
 /// <summary>
 /// 用于生成管理类的工具
@@ -58,7 +59,7 @@ public class ConstClassGenerator : MonoBehaviour {
     {
         if (datas[i].codeFile != "")
             fileName = datas[i].codeFile;
-        string[] fileArr = Directory.GetFiles("Assets/", fileName+".cs", SearchOption.AllDirectories);//获取文件方式有误，todo
+        string[] fileArr = Directory.GetFiles("Assets/", fileName+".cs", SearchOption.AllDirectories);//获取文件
         int  a=fileArr.Length;
         if (a<1)
         {
@@ -66,6 +67,20 @@ public class ConstClassGenerator : MonoBehaviour {
             return null;
         }
         return fileArr[0];
+    }
+    /// <summary>
+    /// 搜索全部cs脚本.
+    /// </summary>
+    /// <returns></returns>
+    static string[] searchAllFiles()
+    {
+        string[] fileArr = Directory.GetFiles("Assets/", "*.cs", SearchOption.AllDirectories);//获取所有脚本文件
+        if (fileArr.Length < 1)
+        {
+            Debug.Log("The file may be wrong:");
+            return null;
+        }
+        return fileArr;
     }
 
     /// <summary>
@@ -101,6 +116,14 @@ public class ConstClassGenerator : MonoBehaviour {
 
     }
 
+    /// <summary>
+    /// 生成特殊的替代字符串，针对有“+”类的分类字符串进行处理
+    /// </summary>
+    /// <returns></returns>
+    static string generateSpecialReplacingString()
+    {
+        return null;
+    }
     
     /// <summary>
     /// 清理并完成最后内容
@@ -124,6 +147,73 @@ public class ConstClassGenerator : MonoBehaviour {
 	void Update () {
 	
 	}
+
+    /// <summary>
+    /// 搜索需要转义的字符串
+    /// </summary>
+    [MenuItem("ConstString/搜索特殊字符串")]
+    public static void searchSpecialString()
+    {
+        string[] fileArr = searchAllFiles();
+        for (int i = 0; i < fileArr.Length; i++)//对每一个文件进行搜索
+        {
+            StreamReader sr = new StreamReader(fileArr[i], System.Text.Encoding.UTF8);
+            string str = "";
+            str = sr.ReadToEnd();
+            string pattern = @"("".*[\u4E00-\u9FA5]+.*?""\s*\+)|(\+\s*"".*[\u4E00-\u9FA5].*?"")";//带有加号的特殊字符串
+            //Match match = Regex.Match(str, pattern);
+            Regex regex = new Regex(pattern, RegexOptions.IgnoreCase | RegexOptions.Multiline);
+            if (regex.IsMatch(str))
+            {
+                MatchCollection matchCollection = regex.Matches(str);
+                foreach (Match match in matchCollection)
+                {
+                    string value = match.Value;//获取到的
+                    Debug.Log(value);//tester
+                }
+            }
+            //Debug.Log("读取文件" + fileArr[i]);
+        }
+        Debug.Log("扫描完成");
+    }
+
+    /// <summary>
+    /// 扫描中文生成配置的方法,todo
+    /// </summary>
+    [MenuItem("ConstString/扫描中文生成配置")]
+    public static void buildConfig()
+    {
+        int count = 0;
+        string[] fileArr = searchAllFiles();
+        for (int i=0;i<fileArr.Length; i++)//对每一个文件进行搜索
+        {
+            ///
+            
+            ///
+            StreamReader sr = new StreamReader(fileArr[i], System.Text.Encoding.UTF8);
+            string str = "";
+            str = sr.ReadToEnd();
+            string pattern= @"""\w*[\u4E00-\u9FA5]+.*?""";//中文匹配的正则表达式 
+            //Match match = Regex.Match(str, pattern);
+            Regex regex = new Regex(pattern, RegexOptions.IgnoreCase | RegexOptions.Multiline);
+            if (regex.IsMatch(str))
+            {
+                MatchCollection matchCollection = regex.Matches(str);
+                foreach (Match match in matchCollection)
+                {
+                    string value = match.Value;//获取到的
+                    count++;
+                    Debug.Log(value+count.ToString());//tester
+                }
+            }
+            Debug.Log("读取文件" + fileArr[i]);
+        }
+        Debug.Log("扫描完成");
+
+    }
+    /// <summary>
+    /// 生成代码的接口
+    /// </summary>
     [MenuItem("ConstString/生成链接")]
     public static void generate(){
         Initial();
