@@ -18,6 +18,8 @@ public class ConstClassGenerator : MonoBehaviour {
         [ColumnMapping("中文")]
         public string strConst;
     }
+    delegate string getFinalStr();//生成最终的字符串
+    static getFinalStr getStr;//委托
     static FileStream referedFile;// 生成的文件
     static DirectoryInfo codeFile;//代码中文件
     static FileStream config;
@@ -119,11 +121,50 @@ public class ConstClassGenerator : MonoBehaviour {
     /// <summary>
     /// 生成特殊的替代字符串，针对有“+”类的分类字符串进行处理
     /// </summary>
-    /// <returns></returns>
-    static string generateSpecialReplacingString()
+    /// <returns>完整的代替字符串</returns>
+    static string generateSpecialReplacingString(string str)
     {
-        return null;
+        char first=str[0], last=str[str.Length-1];//存储开头第一位以及结尾最后一位的两个字符
+        string[] varString=new string[str.Length];//存储变量标识符的数组
+        string finalUsedStr="";//最终替换入的字符串
+        string transferredStr = @"""";//占位后的字符串，变量部分被占位符取代
+
+        str=str.Remove(str.Length-1, 1);
+        str=str.Remove(0, 1);//删除前后两个字符
+
+        string[] splitStr = str.Split('+');//拆分各元素
+        string patternConst = @"\s*"".*""\s*";//字符串常量的正则
+        Regex regex = new Regex(patternConst, RegexOptions.IgnoreCase | RegexOptions.Multiline);
+        int varCount=0;//变量表达式数量
+        for (int i=0;i<splitStr.Length; i++)//分类处理两种字符串
+        {
+            splitStr[i] = splitStr[i].Trim();//去掉前后空格
+            if (regex.IsMatch(splitStr[i]))//若为字符串常量
+            {
+                splitStr[i]=splitStr[i].Remove(splitStr[i].Length - 1, 1);
+                splitStr[i] = splitStr[i].Remove(0, 1);//删除前后两个字符,应该为""
+                transferredStr += splitStr[i];
+            }
+            else
+            {
+                transferredStr = transferredStr + "%s";//+i.ToString();//替换为占位符,并记录每个变量
+                varString[varCount] = splitStr[i];
+                varCount++;
+            }
+        }
+        transferredStr += @"""";
+        ///开始生成最终替换字符串
+        finalUsedStr = first.ToString()+"DebugTrace.Printf(" + transferredStr;
+        for(int i=0;i<varCount;i++)
+        {
+            finalUsedStr += ",";
+            finalUsedStr += varString[i];
+        }
+        finalUsedStr += last.ToString();
+        return finalUsedStr;
     }
+
+    
     
     /// <summary>
     /// 清理并完成最后内容
@@ -160,8 +201,24 @@ public class ConstClassGenerator : MonoBehaviour {
             StreamReader sr = new StreamReader(fileArr[i], System.Text.Encoding.UTF8);
             string str = "";
             str = sr.ReadToEnd();
-            string pattern = @"("".*[\u4E00-\u9FA5]+.*?""\s*\+)|(\+\s*"".*[\u4E00-\u9FA5].*?"")";//带有加号的特殊字符串
-            //Match match = Regex.Match(str, pattern);
+
+            string pattern =
+                  @"(=.*"".*[\u4E00-\u9FA5]+.*?""\s*\+.*;)" + "|"
+                + @"(=.*\+\s*"".*[\u4E00-\u9FA5].*?"".*;)" + "|" //表达式1的情况 =……;
+
+                + @"(\(.*"".*[\u4E00-\u9FA5]+.*?""\s*\+.*,)" + "|"
+                + @"(\(.*\+\s*"".*[\u4E00-\u9FA5].*?"".*,)" + "|" //表达式2的情况  (……,
+
+                + @"(,.*"".*[\u4E00-\u9FA5]+.*?""\s*\+.*\))" + "|"
+                + @"(,.*\+\s*"".*[\u4E00-\u9FA5].*?"".*\))" + "|" //表达式3的情况 ,……）
+
+                + @"(\(.*"".*[\u4E00-\u9FA5]+.*?""\s*\+.*\))" + "|"
+                + @"(\(.*\+\s*"".*[\u4E00-\u9FA5].*?"".*\))"     //表达式4的情况（……）
+
+                +@"(,.*"".*[\u4E00-\u9FA5]+.*?""\s*\+.*,)" + "|"
+                + @"(,.*\+\s*"".*[\u4E00-\u9FA5].*?"".*,)";     //表达式5的情况 ,……,
+
+            //string pattern = @"("".*[\u4E00-\u9FA5]+.*?""\s*\+)|(\+\s*"".*[\u4E00-\u9FA5].*?"")";//带有加号的特殊字符串
             Regex regex = new Regex(pattern, RegexOptions.IgnoreCase | RegexOptions.Multiline);
             if (regex.IsMatch(str))
             {
@@ -169,7 +226,17 @@ public class ConstClassGenerator : MonoBehaviour {
                 foreach (Match match in matchCollection)
                 {
                     string value = match.Value;//获取到的
+                    string result;
                     Debug.Log(value);//tester
+                    if (!value.Contains(@"//"))//进行新字符串的生成,有//存在则必有注释
+                    {
+                        result = generateSpecialReplacingString(value);
+                        str.Replace(str, result);
+                        StreamWriter sw = new StreamWriter(fileArr[i], false, System.Text.Encoding.UTF8);//false表示全部重写
+                        sw.Write(str);
+                        sw.Flush();
+                        sw.Close();
+                    }
                 }
             }
             //Debug.Log("读取文件" + fileArr[i]);
