@@ -160,6 +160,7 @@ public class ConstClassGenerator : MonoBehaviour {
             finalUsedStr += ",";
             finalUsedStr += varString[i];
         }
+        finalUsedStr += ")";
         finalUsedStr += last.ToString();
         return finalUsedStr;
     }
@@ -198,6 +199,16 @@ public class ConstClassGenerator : MonoBehaviour {
         string[] fileArr = searchAllFiles();
         for (int i = 0; i < fileArr.Length; i++)//对每一个文件进行搜索
         {
+            if(fileArr[i].Contains("ConstClassGenerator"))
+            {
+                Debug.Log("I skip myself!");//防止修改自己
+                continue;
+            }
+            if (fileArr[i].Contains("Plugin"))
+            {
+                Debug.Log("I skip Plugin!");//防止修改插件
+                continue;
+            }
             StreamReader sr = new StreamReader(fileArr[i], System.Text.Encoding.UTF8);
             string str = "";
             str = sr.ReadToEnd();
@@ -232,7 +243,7 @@ public class ConstClassGenerator : MonoBehaviour {
                     if (!value.Contains(@"//"))//进行新字符串的生成,有//存在则必有注释
                     {
                         result = generateSpecialReplacingString(value);
-                        string changedStr=str.Replace(str, result);
+                        string changedStr=str.Replace(value, result);
                         StreamWriter sw = new StreamWriter(fileArr[i], false, System.Text.Encoding.UTF8);//false表示全部重写
                         sw.Write(changedStr);
                         sw.Flush();
