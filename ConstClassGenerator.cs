@@ -201,6 +201,7 @@ public class ConstClassGenerator : MonoBehaviour {
             StreamReader sr = new StreamReader(fileArr[i], System.Text.Encoding.UTF8);
             string str = "";
             str = sr.ReadToEnd();
+            sr.Close();
 
             string pattern =
                   @"(=.*"".*[\u4E00-\u9FA5]+.*?""\s*\+.*;)" + "|"
@@ -231,9 +232,9 @@ public class ConstClassGenerator : MonoBehaviour {
                     if (!value.Contains(@"//"))//进行新字符串的生成,有//存在则必有注释
                     {
                         result = generateSpecialReplacingString(value);
-                        str.Replace(str, result);
+                        string changedStr=str.Replace(str, result);
                         StreamWriter sw = new StreamWriter(fileArr[i], false, System.Text.Encoding.UTF8);//false表示全部重写
-                        sw.Write(str);
+                        sw.Write(changedStr);
                         sw.Flush();
                         sw.Close();
                     }
