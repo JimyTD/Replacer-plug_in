@@ -138,6 +138,16 @@ public class ConstClassGenerator : MonoBehaviour {
         int varCount=0;//变量表达式数量
         for (int i=0;i<splitStr.Length; i++)//分类处理两种字符串
         {
+            while(Regex.Matches(splitStr[i],@"\(").Count!=Regex.Matches(splitStr[i],@"\)").Count)//不完整的表达式串
+            {
+                if(i>=splitStr.Length-1)
+                {
+                    Debug.Log("Unexpected faults!");
+                    break;
+                }
+                i += 1;//目前认为不会越界
+                splitStr[i] = splitStr[i - 1] + "+" + splitStr[i];
+            }
             splitStr[i] = splitStr[i].Trim();//去掉前后空格
             if (regex.IsMatch(splitStr[i]))//若为字符串常量
             {
@@ -148,7 +158,7 @@ public class ConstClassGenerator : MonoBehaviour {
             else
             {
                 transferredStr = transferredStr + "%s";//+i.ToString();//替换为占位符,并记录每个变量
-                varString[varCount] = splitStr[i];
+                varString[varCount] = splitStr[i]+ ".ToString()";
                 varCount++;
             }
         }
