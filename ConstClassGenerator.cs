@@ -29,11 +29,11 @@ public class ConstClassGenerator : MonoBehaviour {
     /// </summary>
     static bool Initial()
     {
-        if (!File.Exists("Assets/wordsTest.txt"))
-        {
-            Debug.Log("No Config!");
-            return false;
-        }
+        //if (!File.Exists("Assets/wordsTest.txt"))
+        //{
+        //    Debug.Log("No Config!");
+        //    return false;
+        //}
         //datas = CsvImporter.Parser<strConstData>(File.ReadAllBytes("Assets/wordsTest.txt"));//读取CSV配置 弃用
         if (File.Exists("Assets/constStrings.cs"))
         {
@@ -116,14 +116,14 @@ public class ConstClassGenerator : MonoBehaviour {
             Debug.Log("Read fault..");
         }
         sr.Close();
-        string objectName = "constStrings."+fileName + i.ToString();//引用的字符串变量
-        string changedStr=str.Replace(@"""" + value + @"""", objectName);
+        string objectName = "constStrings."+fileName.Trim() + i.ToString();//引用的字符串变量
+        string changedStr=str.Replace(value, objectName);
         if (changedStr.Equals(temp))//未修改，表示未找到替换部分
         {
             Debug.Log("Fail to find string!" + value);
             return;
         }
-        string objectString = "    public const string " + fileName + i.ToString() + @" =""" + value + @""";"+"\n";
+        string objectString = "    public const string " + fileName.Trim() + i.ToString() + @" =" + value + @";"+"\n";
         byte[] barr = System.Text.Encoding.UTF8.GetBytes(objectString);
         referedFile.Write(barr, 0, barr.Length);//写入参照程序
         StreamWriter sw = new StreamWriter(path,false, System.Text.Encoding.UTF8);//false表示全部重写
@@ -148,9 +148,9 @@ public class ConstClassGenerator : MonoBehaviour {
             foreach (Match match in matchCollection)
             {
                 string value = match.Value;//获取到的              
-                string objectName = "constStringsSpecial." + fileName+i.ToString();//引用的字符串变量,todo -名字不正确
+                string objectName = "constStringsSpecial." + fileName.Trim()+i.ToString();//引用的字符串变量
                 str=str.Replace(value, objectName);
-                string objectString = "    public const string " + fileName + i.ToString() +"="+ value+";" +@"     //该字段可能存在翻译时的连接问题。" +"\n";
+                string objectString = "    public const string " + fileName.Trim() + i.ToString() +"="+ value+";" +@"     //该字段可能存在翻译时的连接问题。" +"\n";
                 byte[] arr = System.Text.Encoding.UTF8.GetBytes(objectString);
                 refFile.Write(arr, 0, arr.Length);//写入参照程序
                 refFile.Flush();
@@ -259,7 +259,6 @@ public class ConstClassGenerator : MonoBehaviour {
                 MatchCollection matchCollection = regex.Matches(str);
                 foreach (Match match in matchCollection)
                 {
-                    varCount++;
                     string value = match.Value;//获取到的
                     string result;
                     Debug.Log(value);//tester
@@ -290,16 +289,32 @@ public class ConstClassGenerator : MonoBehaviour {
     [MenuItem("ConstString/扫描中文生成配置")]
     public static void buildConfig()
     {
+        Initial();
         int count = 0;
         string[] fileArr = searchAllFiles();
         for (int i=0;i<fileArr.Length; i++)//对每一个文件进行搜索
         {
             ///
-            Initial();
+            if (fileArr[i].Contains("constStringsSpecial") | fileArr[i].Contains("constStrings"))
+            {
+                Debug.Log("I skip config!");//防止修改自己
+                continue;
+            }
+            if (fileArr[i].Contains("ConstClassGenerator"))
+            {
+                Debug.Log("I skip myself!");//防止修改自己
+                continue;
+            }
+            if (fileArr[i].Contains("Plugin"))
+            {
+                Debug.Log("I skip Plugin!");//防止修改插件
+                continue;
+            }
             ///
             StreamReader sr = new StreamReader(fileArr[i], System.Text.Encoding.UTF8);
             string str = "";
             str = sr.ReadToEnd();
+            sr.Close();
             string pattern= @"""\w*[\u4E00-\u9FA5]+.*?""";//中文匹配的正则表达式 
             //Match match = Regex.Match(str, pattern);
             Regex regex = new Regex(pattern, RegexOptions.IgnoreCase | RegexOptions.Multiline);
