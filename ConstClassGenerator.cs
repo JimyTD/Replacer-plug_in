@@ -185,11 +185,18 @@ public class ConstClassGenerator : MonoBehaviour {
 	
 	}
 
+    [MenuItem("ConstString/一键生成中文引用")]
+    public static void genConfig()
+    {
+        buildSpecialConfig();
+        buildConfig();
+    }
+
     /// <summary>
     /// 搜索需要转义的字符串
     /// </summary>
-    [MenuItem("ConstString/替换特殊字符串")]
-    public static void searchSpecialString()
+    //[MenuItem("ConstString/替换特殊字符串")]
+    public static void buildSpecialConfig()
     {
 
         ///先创建一个脚本
@@ -286,7 +293,7 @@ public class ConstClassGenerator : MonoBehaviour {
     /// <summary>
     /// 扫描中文生成配置的方法,todo
     /// </summary>
-    [MenuItem("ConstString/扫描中文生成配置")]
+    //[MenuItem("ConstString/扫描中文生成配置")]
     public static void buildConfig()
     {
         Initial();
