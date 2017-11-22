@@ -34,7 +34,7 @@ public class ConstClassGenerator : MonoBehaviour {
             Debug.Log("No Config!");
             return false;
         }
-        datas = CsvImporter.Parser<strConstData>(File.ReadAllBytes("Assets/wordsTest.txt"));
+        //datas = CsvImporter.Parser<strConstData>(File.ReadAllBytes("Assets/wordsTest.txt"));//读取CSV配置 弃用
         if (File.Exists("Assets/constStrings.cs"))
         {
             File.Delete("Assets/constStrings.cs");
@@ -103,7 +103,7 @@ public class ConstClassGenerator : MonoBehaviour {
     /// <summary>
     /// 搜索代码,todo
     /// </summary>
-    static void searchCode(string path,string fileName,int i)
+    static void searchCode(string path,string fileName,int i,string value)
     {
         //byte[] byteArray=File.ReadAllBytes(name);
         //string Ascstr = new string(System.Text.Encoding.ASCII.GetString(byteArray).ToCharArray());//上面采用的是读正常字符集的办法，File类不如StreamReader灵活，下面指定了UTF-8读入
@@ -117,13 +117,13 @@ public class ConstClassGenerator : MonoBehaviour {
         }
         sr.Close();
         string objectName = "constStrings."+fileName + i.ToString();//引用的字符串变量
-        string changedStr=str.Replace(@"""" + datas[i].strConst + @"""", objectName);
+        string changedStr=str.Replace(@"""" + value + @"""", objectName);
         if (changedStr.Equals(temp))//未修改，表示未找到替换部分
         {
-            Debug.Log("Fail to find string!" + datas[i].strConst);
+            Debug.Log("Fail to find string!" + value);
             return;
         }
-        string objectString = "    public const string " + fileName + i.ToString() + @" =""" + datas[i].strConst + @""";"+"\n";
+        string objectString = "    public const string " + fileName + i.ToString() + @" =""" + value + @""";"+"\n";
         byte[] barr = System.Text.Encoding.UTF8.GetBytes(objectString);
         referedFile.Write(barr, 0, barr.Length);//写入参照程序
         StreamWriter sw = new StreamWriter(path,false, System.Text.Encoding.UTF8);//false表示全部重写
@@ -188,7 +188,7 @@ public class ConstClassGenerator : MonoBehaviour {
     /// <summary>
     /// 搜索需要转义的字符串
     /// </summary>
-    [MenuItem("ConstString/搜索特殊字符串")]
+    [MenuItem("ConstString/替换特殊字符串")]
     public static void searchSpecialString()
     {
 
@@ -295,7 +295,7 @@ public class ConstClassGenerator : MonoBehaviour {
         for (int i=0;i<fileArr.Length; i++)//对每一个文件进行搜索
         {
             ///
-            
+            Initial();
             ///
             StreamReader sr = new StreamReader(fileArr[i], System.Text.Encoding.UTF8);
             string str = "";
@@ -311,27 +311,31 @@ public class ConstClassGenerator : MonoBehaviour {
                     string value = match.Value;//获取到的
                     count++;
                     Debug.Log(value+count.ToString());//tester
+                    searchCode(fileArr[i], getDirectFileName(fileArr[i]), count, value);
                 }
             }
             Debug.Log("读取文件" + fileArr[i]);
         }
         Debug.Log("扫描完成");
-
-    }
-    /// <summary>
-    /// 生成代码的接口
-    /// </summary>
-    [MenuItem("ConstString/生成链接")]
-    public static void generate(){
-        Initial();
-        string fileName = "";
-        for (int i = 0; i < datas.Length; i++)
-        {
-            string name=searchFile(ref fileName,i);
-            if(name!=null)searchCode(name,fileName,i);
-
-        }
         distruct();
+
     }
+
+
+    ///// <summary>
+    ///// 生成代码的接口,因CSVPARSER空格问题被弃用
+    ///// </summary>
+    //[MenuItem("ConstString/生成链接")]
+    //public static void generate(){
+    //    Initial();
+    //    string fileName = "";
+    //    for (int i = 0; i < datas.Length; i++)
+    //    {
+    //        string name=searchFile(ref fileName,i);
+    //        if(name!=null)searchCode(name,fileName,i);
+
+    //    }
+    //    distruct();
+    //}
 
 }
