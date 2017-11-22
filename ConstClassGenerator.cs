@@ -46,13 +46,28 @@ public class ConstClassGenerator : MonoBehaviour {
             return false;
         }
         //写入类信息
-        string temp="class constStrings{\n";
+        string temp="public class constStrings{\n";
         byte[] barr = System.Text.Encoding.UTF8.GetBytes(temp);
         referedFile.Write(barr, 0, barr.Length);
         Debug.Log("fileOpenSuccess");
         return true;
     }
-   
+
+    /// <summary>
+    /// 获取对应路径中纯净文件名
+    /// </summary>
+    /// <param name="str"></param>
+    /// <returns></returns>
+    static string getDirectFileName(string str)
+    {
+        int index1=str.LastIndexOf('\\');
+        int index2 = str.LastIndexOf('/');
+        int index = index1 >= index2 ? index1 : index2;
+        str = str.Remove(0, index + 1);//删除掉前面的目录
+        index = str.LastIndexOf('.');
+        str = str.Remove(index, str.Length - index);
+        return str;
+    }
 
     /// <summary>
     /// 搜索文件
@@ -119,60 +134,30 @@ public class ConstClassGenerator : MonoBehaviour {
     }
 
     /// <summary>
-    /// 生成特殊的替代字符串，针对有“+”类的分类字符串进行处理
+    /// 生成特殊的替代字符串，针对有“+”类的分类字符串进行处理,存在constStringsSpecial.cs
     /// </summary>
     /// <returns>完整的代替字符串</returns>
-    static string generateSpecialReplacingString(string str)
+    static string generateSpecialReplacingString(string str,string fileName, ref FileStream refFile,ref int i)
     {
-        char first=str[0], last=str[str.Length-1];//存储开头第一位以及结尾最后一位的两个字符
-        string[] varString=new string[str.Length];//存储变量标识符的数组
-        string finalUsedStr="";//最终替换入的字符串
-        string transferredStr = @"""";//占位后的字符串，变量部分被占位符取代
-
-        str=str.Remove(str.Length-1, 1);
-        str=str.Remove(0, 1);//删除前后两个字符
-
-        string[] splitStr = str.Split('+');//拆分各元素
-        string patternConst = @"\s*"".*""\s*";//字符串常量的正则
+        string patternConst = @"""[^""]*[\u4E00-\u9FA5]+[^""]*?""";//中文字符串常量的正则
         Regex regex = new Regex(patternConst, RegexOptions.IgnoreCase | RegexOptions.Multiline);
-        int varCount=0;//变量表达式数量
-        for (int i=0;i<splitStr.Length; i++)//分类处理两种字符串
+        fileName = getDirectFileName(fileName);
+        if (regex.IsMatch(str))
         {
-            while(Regex.Matches(splitStr[i],@"\(").Count!=Regex.Matches(splitStr[i],@"\)").Count)//不完整的表达式串
+            MatchCollection matchCollection = regex.Matches(str);
+            foreach (Match match in matchCollection)
             {
-                if(i>=splitStr.Length-1)
-                {
-                    Debug.Log("Unexpected faults!");
-                    break;
-                }
-                i += 1;//目前认为不会越界
-                splitStr[i] = splitStr[i - 1] + "+" + splitStr[i];
-            }
-            splitStr[i] = splitStr[i].Trim();//去掉前后空格
-            if (regex.IsMatch(splitStr[i]))//若为字符串常量
-            {
-                splitStr[i]=splitStr[i].Remove(splitStr[i].Length - 1, 1);
-                splitStr[i] = splitStr[i].Remove(0, 1);//删除前后两个字符,应该为""
-                transferredStr += splitStr[i];
-            }
-            else
-            {
-                transferredStr = transferredStr + "%s";//+i.ToString();//替换为占位符,并记录每个变量
-                varString[varCount] = splitStr[i]+ ".ToString()";
-                varCount++;
+                string value = match.Value;//获取到的              
+                string objectName = "constStringsSpecial." + fileName+i.ToString();//引用的字符串变量,todo -名字不正确
+                str=str.Replace(value, objectName);
+                string objectString = "    public const string " + fileName + i.ToString() +"="+ value+";" +@"     //该字段可能存在翻译时的连接问题。" +"\n";
+                byte[] arr = System.Text.Encoding.UTF8.GetBytes(objectString);
+                refFile.Write(arr, 0, arr.Length);//写入参照程序
+                refFile.Flush();
+                i++;
             }
         }
-        transferredStr += @"""";
-        ///开始生成最终替换字符串
-        finalUsedStr = first.ToString()+"DebugTrace.Printf(" + transferredStr;
-        for(int i=0;i<varCount;i++)
-        {
-            finalUsedStr += ",";
-            finalUsedStr += varString[i];
-        }
-        finalUsedStr += ")";
-        finalUsedStr += last.ToString();
-        return finalUsedStr;
+        return str;
     }
 
     
@@ -206,10 +191,34 @@ public class ConstClassGenerator : MonoBehaviour {
     [MenuItem("ConstString/搜索特殊字符串")]
     public static void searchSpecialString()
     {
+
+        ///先创建一个脚本
+        ///特别字符串存储类
+        if (File.Exists("Assets/constStringsSpecial.cs"))
+        {
+            File.Delete("Assets/constStringsSpecial.cs");
+        }//删除老的配置
+        FileStream spFile = File.Open("Assets/constStringsSpecial.cs", FileMode.OpenOrCreate);
+        if (!File.Exists("Assets/constStringsSpecial.cs"))
+        {
+            Debug.Log("Create failed!");
+        }
+        //写入类信息
+        string temp = "public class constStringsSpecial{\n";
+        byte[] barr = System.Text.Encoding.UTF8.GetBytes(temp);
+        spFile.Write(barr, 0, barr.Length);
+        Debug.Log("fileOpenSuccess");
+
+        ///搜索
         string[] fileArr = searchAllFiles();
         for (int i = 0; i < fileArr.Length; i++)//对每一个文件进行搜索
         {
-            if(fileArr[i].Contains("ConstClassGenerator"))
+            if (fileArr[i].Contains("constStringsSpecial")| fileArr[i].Contains("constStrings"))
+            {
+                Debug.Log("I skip config!");//防止修改自己
+                continue;
+            }
+            if (fileArr[i].Contains("ConstClassGenerator"))
             {
                 Debug.Log("I skip myself!");//防止修改自己
                 continue;
@@ -241,18 +250,22 @@ public class ConstClassGenerator : MonoBehaviour {
                 + @"(,.*\+\s*"".*[\u4E00-\u9FA5].*?"".*,)";     //表达式5的情况 ,……,
 
             //string pattern = @"("".*[\u4E00-\u9FA5]+.*?""\s*\+)|(\+\s*"".*[\u4E00-\u9FA5].*?"")";//带有加号的特殊字符串
+
+            
             Regex regex = new Regex(pattern, RegexOptions.IgnoreCase | RegexOptions.Multiline);
-            if (regex.IsMatch(str))
+            if (regex.IsMatch(str))//对上述字符串特别的进行特别替换
             {
+                int varCount = 0;
                 MatchCollection matchCollection = regex.Matches(str);
                 foreach (Match match in matchCollection)
                 {
+                    varCount++;
                     string value = match.Value;//获取到的
                     string result;
                     Debug.Log(value);//tester
                     if (!value.Contains(@"//"))//进行新字符串的生成,有//存在则必有注释
                     {
-                        result = generateSpecialReplacingString(value);
+                        result = generateSpecialReplacingString(value,fileArr[i],ref spFile,ref varCount);
                         string changedStr=str.Replace(value, result);
                         StreamWriter sw = new StreamWriter(fileArr[i], false, System.Text.Encoding.UTF8);//false表示全部重写
                         sw.Write(changedStr);
@@ -261,8 +274,13 @@ public class ConstClassGenerator : MonoBehaviour {
                     }
                 }
             }
-            //Debug.Log("读取文件" + fileArr[i]);
         }
+        string temp1 = "};";
+        byte[] arr = System.Text.Encoding.UTF8.GetBytes(temp1);
+        spFile.Write(arr, 0, arr.Length);
+        spFile.Flush();
+        spFile.Close();
+        Debug.Log("fileCloseSuccess");
         Debug.Log("扫描完成");
     }
 
