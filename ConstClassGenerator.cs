@@ -150,7 +150,7 @@ public class ConstClassGenerator : MonoBehaviour {
                 string value = match.Value;//获取到的              
                 string objectName = "constStringsSpecial." + fileName.Trim()+i.ToString();//引用的字符串变量
                 str=str.Replace(value, objectName);
-                string objectString = "    public const string " + fileName.Trim() + i.ToString() +"="+ value+";" +@"     //该字段可能存在翻译时的连接问题。" +"\n";
+                string objectString = "    public const string " + fileName.Trim() + i.ToString() +"="+ value+";\n";
                 byte[] arr = System.Text.Encoding.UTF8.GetBytes(objectString);
                 refFile.Write(arr, 0, arr.Length);//写入参照程序
                 refFile.Flush();
